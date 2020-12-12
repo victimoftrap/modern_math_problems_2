@@ -1,5 +1,7 @@
 import math
 import random
+import argparse
+
 import sample_characteristics
 
 
@@ -49,21 +51,34 @@ def generate_log(size, primary, secondary, contamination):
     return res
 
 
-def main():
-    n = 100000
-    data = generate_log(size=n, contamination=0.2, primary=lambda: random_log(), secondary=lambda: random_log(scale=10))
-    print(sample_characteristics.mean(data))
-    print(sample_characteristics.median(data))
-    print(sample_characteristics.variance(data))
-    print(sample_characteristics.skewness(data))
-    print(sample_characteristics.kurtosis(data))
+def main(n, shift, scale, contamination):
+    data = generate_log(
+        size=n,
+        contamination=contamination,
+        primary=lambda: random_log(),
+        secondary=lambda: random_log(scale=scale)
+    )
+    print("Среднее:", sample_characteristics.mean(data))
+    print("Медиана:", sample_characteristics.median(data))
+    print("Дисперсия:", sample_characteristics.variance(data))
+    print("Коэф. асимметрии:", sample_characteristics.skewness(data))
+    print("Коэф. эксцесса:", sample_characteristics.kurtosis(data))
+
     save_to_isw_file(
         data,
-        name='Log(0, 1)x0.8_mixt_scale10_100.dat',
-        description='Логистическое(0,1) с засорением 0.2 логистическим (0,10)',
+        name=f'Log(0, 1)x{1 - contamination}_mixt_scale{scale}_{n}.dat',
+        description=f'Логистическое(0,1) с засорением {contamination} логистическим (0,{scale})',
         size=n
     )
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="Modern math problems, pt.2")
+    parser.add_argument('-n', dest='n', type=int, help="объём выборки")
+    parser.add_argument('--shift', dest='shift', type=float, help="параметр сдвига")
+    parser.add_argument('--scale', dest='scale', type=float, help="параметр масштаба")
+    parser.add_argument('-c', '--contamination', dest='contamination', type=float, help="коэффициент засорения")
+    parsed_args = parser.parse_args()
+
+    # main(n=100000, shift=0, scale=10)
+    main(n=parsed_args.n, shift=parsed_args.shift, scale=parsed_args.scale, contamination=parsed_args.contamination)
