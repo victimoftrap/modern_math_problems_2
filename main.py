@@ -1,4 +1,5 @@
 import math
+import numpy
 import random
 import argparse
 from scipy import optimize
@@ -6,6 +7,28 @@ from functools import partial
 
 import sample_characteristics
 
+
+def monte_carlo(m, n, contamination, shift, scale):
+    omp = []
+    oro_1 = []
+    oro_5 = []
+    oro_10 = []
+    for i in range(m):
+        data = generate_log(
+            size=n,
+            contamination=contamination,
+            primary=lambda: random_log(),
+            secondary=lambda: random_log(shift=shift, scale=scale)
+        )
+        omp.append(secant_method(estimator_mle_log, 0, 0.0000001, data, scale) ** 2)
+        oro_1.append(optimize.root_scalar(partial(estimator_oro_log, data, scale, 0.1), x0=0, fprime=partial(estimator_oro_log_prime, data, scale, 0.1), method='newton').root ** 2)
+        oro_5.append(optimize.root_scalar(partial(estimator_oro_log, data, scale, 0.5), x0=0, fprime=partial(estimator_oro_log_prime, data, scale, 0.5), method='newton').root ** 2)
+        oro_10.append(optimize.root_scalar(partial(estimator_oro_log, data, scale, 1), x0=0, fprime=partial(estimator_oro_log_prime, data, scale, 1), method='newton').root ** 2)
+    print(f"Критерий качества ОМП: {numpy.mean(omp)}")
+    print(f"Критерий качества ОРО 0.1: {numpy.mean(oro_1)}")
+    print(f"Критерий качества ОРО 0.5: {numpy.mean(oro_5)}")
+    print(f"Критерий качества ОРО 1: {numpy.mean(oro_10)}")
+    
 
 def secant_method(f, x0, epsilon, data, scale, delta=None):
     f_0 = f(x0, data, scale, delta)
@@ -96,6 +119,10 @@ def generate_log(size, primary, secondary, contamination):
 
 
 def main(n, shift, scale, contamination):
+    monte_carlo(1000, n, contamination, shift, scale)
+
+
+def main2(n, shift, scale, contamination):
     data = generate_log(
         size=n,
         contamination=contamination,
